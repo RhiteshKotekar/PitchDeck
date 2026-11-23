@@ -2,7 +2,7 @@ import React from "react";
 import { View, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useAuth, useUser } from "@clerk/clerk-expo";
+import { useAuth, useUser } from "@clerk/expo";
 import { Feather } from "@expo/vector-icons";
 import {
   AppText,
@@ -22,6 +22,14 @@ export default function SettingsScreen() {
   const { signOut } = useAuth();
   const { user } = useUser();
   const [showSignOut, setShowSignOut] = React.useState(false);
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(tabs)/profile" as any);
+    }
+  };
 
   const themeOptions: { key: ThemeMode; label: string; icon: keyof typeof Feather.glyphMap }[] = [
     { key: "light", label: "Light", icon: "sun" },
@@ -49,7 +57,7 @@ export default function SettingsScreen() {
       >
         {/* Header */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 32 }}>
-          <IconButton name="arrow-left" onPress={() => router.back()} />
+          <IconButton name="arrow-left" onPress={handleBack} />
           <AppText variant="h2">Settings</AppText>
         </View>
 

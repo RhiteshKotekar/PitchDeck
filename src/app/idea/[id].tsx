@@ -8,7 +8,7 @@ import {
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import { useUser } from "@clerk/clerk-expo";
+import { useUser } from "@clerk/expo";
 import {
   AppText,
   Avatar,
@@ -63,6 +63,14 @@ export default function IdeaDetailScreen() {
     }, [fetchIdea])
   );
 
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(tabs)" as any);
+    }
+  };
+
   const onShare = async () => {
     if (!idea) return;
     try {
@@ -80,7 +88,7 @@ export default function IdeaDetailScreen() {
     try {
       await ideasApi.delete(idea.id);
       show("success", "Idea deleted");
-      router.back();
+      handleBack();
     } catch (err: any) {
       show("error", err.message || "Failed to delete");
     } finally {
@@ -122,7 +130,7 @@ export default function IdeaDetailScreen() {
       >
         {/* Nav bar */}
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-          <IconButton name="arrow-left" onPress={() => router.back()} />
+          <IconButton name="arrow-left" onPress={handleBack} />
           <View style={{ flexDirection: "row", gap: 4 }}>
             <IconButton name="share-2" onPress={onShare} />
             {isOwner && (

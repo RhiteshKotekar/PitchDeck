@@ -7,7 +7,7 @@ import {
   Pressable,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useSignIn } from "@clerk/clerk-expo";
+import { useSignIn } from "@clerk/expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, AppButton, TextField, PasswordField, IconButton } from "@/components/ui";
 import { useColors } from "@/theme";
@@ -16,31 +16,48 @@ export default function SignInScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const colors = useColors();
-  const { signIn, setActive, isLoaded } = useSignIn();
+  const { signIn } = useSignIn();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(auth)/welcome" as any);
+    }
+  };
+
   const onSignIn = async () => {
-    if (!isLoaded) return;
     setError("");
     setLoading(true);
 
     try {
-      const result = await signIn.create({
-        identifier: email,
+      const { error: signInError } = await signIn.password({
+        emailAddress: email,
         password,
       });
 
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
+      if (signInError) {
+        setError(signInError.message);
+        return;
+      }
+
+      if (signIn.status === "complete") {
+        const { error: finalizeError } = await signIn.finalize();
+        if (finalizeError) {
+          setError(finalizeError.message);
+          return;
+        }
+        router.replace("/(tabs)" as any);
       } else {
-        setError("Sign in incomplete. Please try again.");
+        setError("Additional verification is required to finish signing in.");
       }
     } catch (err: any) {
-      setError(err?.errors?.[0]?.longMessage ?? err?.message ?? "Sign in failed");
+      setError(err?.message ?? "Sign in failed");
     } finally {
       setLoading(false);
     }
@@ -62,7 +79,7 @@ export default function SignInScreen() {
       >
         <IconButton
           name="arrow-left"
-          onPress={() => router.back()}
+          onPress={handleBack}
           style={{ marginLeft: -12, marginBottom: 16 }}
         />
 

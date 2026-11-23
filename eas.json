@@ -11,6 +11,10 @@
     "preview": {
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_dG9nZXRoZXItZG9iZXJtYW4tNDU3Ni5jbGVyay5hY2NvdW50cy5kZXYk",
+        "EXPO_PUBLIC_API_URL": "https://pitchdeck-dpo1.onrender.com"
       }
     },
     "production": {

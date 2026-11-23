@@ -7,7 +7,7 @@ import {
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useUser } from "@clerk/clerk-expo";
+import { useUser } from "@clerk/expo";
 import {
   AppText,
   SearchField,

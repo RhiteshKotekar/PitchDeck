@@ -16,7 +16,7 @@ import {
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
 import * as SplashScreen from "expo-splash-screen";
-import { ClerkProvider, ClerkLoaded, useAuth } from "@clerk/clerk-expo";
+import { ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@/lib/auth";
 import { ThemeProvider, useTheme } from "@/theme";
 import { ToastProvider, AppText, AppButton } from "@/components/ui";
@@ -134,9 +134,8 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <ClerkProvider publishableKey={CLERK_KEY} tokenCache={tokenCache}>
-        <ClerkLoaded>
-          <ToastProvider>
-            <AuthGate>
+        <ToastProvider>
+          <AuthGate>
               <ThemedStatusBar />
               <Stack
                 screenOptions={{
@@ -144,9 +143,8 @@ export default function RootLayout() {
                   animation: "slide_from_right",
                 }}
               />
-            </AuthGate>
-          </ToastProvider>
-        </ClerkLoaded>
+          </AuthGate>
+        </ToastProvider>
       </ClerkProvider>
     </ThemeProvider>
   );

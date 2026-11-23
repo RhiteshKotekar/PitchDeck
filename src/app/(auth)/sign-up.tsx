@@ -7,7 +7,7 @@ import {
   Pressable,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useSignUp } from "@clerk/clerk-expo";
+import { useSignUp } from "@clerk/expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, AppButton, TextField, PasswordField, IconButton } from "@/components/ui";
 import { useColors } from "@/theme";
@@ -16,9 +16,10 @@ export default function SignUpScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const colors = useColors();
-  const { signUp, setActive, isLoaded } = useSignUp();
+  const { signUp } = useSignUp();
 
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
@@ -26,45 +27,106 @@ export default function SignUpScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const handleBack = () => {
+    if (pendingVerification) {
+      setPendingVerification(false);
+      setCode("");
+      setError("");
+      return;
+    }
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(auth)/welcome" as any);
+    }
+  };
+
   const onSignUp = async () => {
-    if (!isLoaded) return;
     setError("");
     setLoading(true);
 
     try {
-      await signUp.create({
-        firstName: name.split(" ")[0],
-        lastName: name.split(" ").slice(1).join(" ") || undefined,
-        emailAddress: email,
+      const [firstName, ...lastNameParts] = name.trim().split(/\s+/);
+      const signUpParams: any = {
+        firstName,
+        lastName: lastNameParts.join(" ") || undefined,
+        emailAddress: email.trim(),
         password,
-      });
+      };
 
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      if (username.trim()) {
+        signUpParams.username = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+      }
+
+      let { error: signUpError } = await signUp.password(signUpParams);
+
+      // If Clerk rejected because username is disabled in dashboard settings, retry without username
+      if (signUpError && signUpParams.username && signUpError.message?.toLowerCase().includes("username")) {
+        delete signUpParams.username;
+        const retry = await signUp.password(signUpParams);
+        signUpError = retry.error;
+      }
+
+      if (signUpError) {
+        setError(signUpError.message);
+        return;
+      }
+
+      const { error: verificationError } = await signUp.verifications.sendEmailCode();
+      if (verificationError) {
+        setError(verificationError.message);
+        return;
+      }
       setPendingVerification(true);
     } catch (err: any) {
-      setError(err?.errors?.[0]?.longMessage ?? err?.message ?? "Sign up failed");
+      setError(err?.message ?? "Sign up failed");
     } finally {
       setLoading(false);
     }
   };
 
   const onVerify = async () => {
-    if (!isLoaded) return;
     setError("");
     setLoading(true);
 
     try {
-      const result = await signUp.attemptEmailAddressVerification({
-        code,
-      });
+      const { error: verificationError } = await signUp.verifications.verifyEmailCode({ code: code.trim() });
+      if (verificationError) {
+        setError(verificationError.message);
+        return;
+      }
 
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
+      // If Clerk still requires missing fields (e.g. username is mandatory in Clerk dashboard):
+      if (signUp.status !== "complete" && signUp.missingFields && signUp.missingFields.length > 0) {
+        for (const missingField of signUp.missingFields) {
+          if (missingField === ("username" as any)) {
+            const cleanUser = (username.trim() || email.split("@")[0] || "founder")
+              .toLowerCase()
+              .replace(/[^a-z0-9_]/g, "")
+              .slice(0, 15);
+            const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+            const autoUser = `${cleanUser}_${randomSuffix}`;
+            const { error: updateErr } = await signUp.update({ username: autoUser });
+            if (updateErr) {
+              console.warn("Could not auto-set username:", updateErr.message);
+            }
+          }
+        }
+      }
+
+      if (signUp.status === "complete") {
+        const { error: finalizeError } = await signUp.finalize();
+        if (finalizeError) {
+          setError(finalizeError.message);
+          return;
+        }
+        router.replace("/(tabs)" as any);
       } else {
-        setError("Verification incomplete. Please try again.");
+        const missing = signUp.missingFields?.join(", ") || "additional fields";
+        setError(`Email verified, but sign-up is waiting on: ${missing}.`);
       }
     } catch (err: any) {
-      setError(err?.errors?.[0]?.longMessage ?? err?.message ?? "Verification failed");
+      setError(err?.message ?? "Verification failed");
     } finally {
       setLoading(false);
     }
@@ -86,7 +148,7 @@ export default function SignUpScreen() {
       >
         <IconButton
           name="arrow-left"
-          onPress={() => router.back()}
+          onPress={handleBack}
           style={{ marginLeft: -12, marginBottom: 16 }}
         />
 
@@ -142,6 +204,14 @@ export default function SignUpScreen() {
               onChangeText={setName}
               autoCapitalize="words"
               icon="user"
+            />
+            <TextField
+              label="Username (optional)"
+              placeholder="e.g. founder_name"
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none"
+              icon="at-sign"
             />
             <TextField
               label="Email"

@@ -37,13 +37,16 @@
       ],
       "expo-secure-store",
       "expo-status-bar",
-      "expo-web-browser"
+      "expo-web-browser",
+      "@clerk/expo"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
     "extra": {
+      "clerkPublishableKey": "pk_test_dG9nZXRoZXItZG9iZXJtYW4tNDU3Ni5jbGVyay5hY2NvdW50cy5kZXYk",
+      "apiUrl": "https://pitchdeck-dpo1.onrender.com",
       "router": {
         "asyncRoutes": {
           "web": true
